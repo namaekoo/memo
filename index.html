@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>メモ</title>
+<style>
+  :root {
+    --bg: #f2f1ec;
+    --card-bg: #ffffff;
+    --accent: #d9a400;
+    --link: #d18b00;
+    --text-main: #1c1c1e;
+    --text-sub: #8e8e93;
+    --border: #e3e1da;
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #000000; --card-bg: #1c1c1e; --accent: #ffd60a; --link: #ffd60a;
+      --text-main: #f2f2f7; --text-sub: #8e8e93; --border: #2c2c2e;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #000000; --card-bg: #1c1c1e; --accent: #ffd60a; --link: #ffd60a;
+    --text-main: #f2f2f7; --text-sub: #8e8e93; --border: #2c2c2e;
+  }
+  html { scroll-padding-top: env(safe-area-inset-top, 0px); height: 100%; }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text-main);
+    font-family: -apple-system, "Hiragino Sans", "Yu Gothic", "Noto Sans JP", sans-serif;
+    -webkit-font-smoothing: antialiased; height: 100%; overflow: hidden;
+  }
+  #root { height: 100%; display: flex; flex-direction: column; }
+  .screen { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+  header {
+    padding: calc(8px + env(safe-area-inset-top,0px)) 14px 8px;
+    display: flex; align-items: center; justify-content: space-between; flex: 0 0 auto;
+  }
+  header .side { min-width: 60px; display: flex; align-items: center; }
+  header .side.right { justify-content: flex-end; }
+  header .link-btn { color: var(--link); font-size: 15px; background: none; border: none; padding: 4px 2px; }
+  header h1 { font-size: 17px; font-weight: 700; margin: 0; text-align: center; flex: 1; }
+  .list-scroll { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding-bottom: 24px; }
+  .folder-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 16px; border-bottom: 1px solid var(--border); font-size: 16px;
+  }
+  .folder-row .f-name { display: flex; align-items: center; gap: 10px; }
+  .folder-row .f-icon { font-size: 18px; }
+  .folder-row .f-count { color: var(--text-sub); font-size: 15px; }
+  .folder-row .f-chev { color: var(--text-sub); margin-left: 8px; }
+  .search-wrap { padding: 4px 14px 10px; }
+  .search-wrap input {
+    width: 100%; font-size: 15px; padding: 8px 12px; border-radius: 10px; border: none;
+    background: var(--card-bg); color: var(--text-main); font-family: inherit;
+  }
+  .note-row {
+    display: block; padding: 10px 16px; border-bottom: 1px solid var(--border);
+  }
+  .note-row .n-title { font-size: 16px; font-weight: 600; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .note-row .n-meta { font-size: 13px; color: var(--text-sub); display: flex; gap: 8px; }
+  .note-row .n-preview { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .empty { text-align: center; color: var(--text-sub); font-size: 14px; padding: 60px 20px; line-height: 1.8; }
+  .editor-wrap { flex: 1; display: flex; flex-direction: column; min-height: 0; padding: 0 16px; }
+  .editor-wrap textarea {
+    flex: 1; width: 100%; border: none; outline: none; resize: none; background: transparent;
+    color: var(--text-main); font-family: inherit; font-size: 17px; line-height: 1.6; padding: 6px 0 30px;
+  }
+  .editor-footer {
+    flex: 0 0 auto; display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 4px calc(10px + env(safe-area-inset-bottom,0px)); border-top: 1px solid var(--border);
+    font-size: 12px; color: var(--text-sub);
+  }
+  .editor-footer button { font-size: 18px; background: none; border: none; color: var(--text-sub); padding: 6px 10px; }
+  .fab {
+    position: absolute; right: 18px; bottom: calc(18px + env(safe-area-inset-bottom,0px));
+    width: 52px; height: 52px; border-radius: 50%; background: var(--accent); color: #1c1c1e;
+    border: none; font-size: 24px; box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+  }
+  .overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 20;
+    display: flex; align-items: flex-end; justify-content: center;
+  }
+  .sheet {
+    background: var(--card-bg); width: 100%; max-width: 480px; border-radius: 18px 18px 0 0;
+    padding: 18px 16px calc(20px + env(safe-area-inset-bottom,0px));
+  }
+  .sheet h2 { font-size: 15px; margin: 0 0 12px; }
+  .sheet input {
+    width: 100%; font-size: 15px; padding: 10px; border-radius: 10px; border: 1px solid var(--border);
+    background: var(--bg); color: var(--text-main); font-family: inherit; margin-bottom: 14px;
+  }
+  .sheet-actions { display: flex; gap: 8px; }
+  .btn { flex: 1; font-size: 14px; font-weight: 600; padding: 10px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg); color: var(--text-main); }
+  .btn.primary { background: var(--accent); color: #1c1c1e; border-color: var(--accent); }
+  .btn.danger { color: #ff3b30; }
+  .status-dot { position: fixed; top: calc(6px + env(safe-area-inset-top,0px)); left: 50%; transform: translateX(-50%); font-size: 10px; color: var(--text-sub); z-index: 3; }
+</style>
+</head>
+<body>
+
+<div id="root"></div>
+
+<script>
+(function(){
+  var DEFAULT_STATE = {"view":"folders","activeFolder":"f1","activeNote":"n1","folders":[{"id":"f1","name":"危険物第１章","notes":[{"id":"n1","title":"危険物保安監督者 語呂合わせ","body":"危険物保安監督者 語呂合わせ\n\n■資格要件\nコウオツ、ロクに実務やれ\n・コウオツ＝甲種・乙種危険物取扱者\n・ロク＝6ヶ月以上の実務経験\n（丙種は絶対に選任不可）\n\n■届出先\n監督は市長に報告\n・選任/解任いずれも市町村長等に届け出る\n\n■無条件で必要な4施設\n製造は多岐にタンク移送、給油する\n・製造所／屋外タンク貯蔵所／移送取扱所／給油取扱所\n\n■屋外貯蔵所の例外\n屋外は三十路から監督必要\n・指定数量30倍を超える場合のみ選任必要\n\n■移動タンク貯蔵所\n移動は身軽、監督いらず\n・選任が完全に不要\n\n■指示の方向\n監督が保安員に指図する\n・保安監督者→保安員へ指示（逆ではない）","updatedAt":1790486262435}]}],"editorFolder":"f1"};
+  var state = JSON.parse(JSON.stringify(DEFAULT_STATE));
+var root = document.getElementById('root');
+  var saveTimer = null;
+  var editorTextareaEl = null;
+  var editingNoteRef = null;
+
+  function uid(pre){ return (pre||'n') + Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+  function esc(s){
+    return String(s == null ? '' : s).replace(/[&<>"]/g, function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];
+    });
+  }
+  function fmtDate(ts){
+    var d = new Date(ts);
+    var now = new Date();
+    var sameDay = d.toDateString() === now.toDateString();
+    if (sameDay) return d.getHours() + ':' + (d.getMinutes()<10?'0':'') + d.getMinutes();
+    return (d.getMonth()+1) + '/' + d.getDate();
+  }
+
+  function getFolder(id){
+    return state.folders.filter(function(f){ return f.id === id; })[0] || null;
+  }
+  function allNotesFlat(){
+    var out = [];
+    state.folders.forEach(function(f){
+      f.notes.forEach(function(n){ out.push({ note: n, folder: f }); });
+    });
+    return out;
+  }
+  function findNote(folderId, noteId){
+    var f = getFolder(folderId);
+    if (!f) return null;
+    return f.notes.filter(function(n){ return n.id === noteId; })[0] || null;
+  }
+
+  function render(){
+    if (state.view === 'folders') renderFolders();
+    else if (state.view === 'notes') renderNotes();
+    else renderEditor();
+  }
+
+  function renderFolders(){
+    var html = '<div class="screen">';
+    html += '<header><div class="side"><button class="link-btn" id="btn-sync" style="font-size:12px;">⚙ ' + esc(syncStatus) + '</button></div><h1>メモ</h1><div class="side right"><button class="link-btn" id="btn-add-folder">＋</button></div></header>';
+    html += '<div class="list-scroll">';
+
+    var totalCount = allNotesFlat().length;
+    html += '<div class="folder-row" data-open-all="1"><span class="f-name"><span class="f-icon">🗒️</span>すべてのメモ</span><span class="f-count">' + totalCount + ' <span class="f-chev">›</span></span></div>';
+
+    state.folders.forEach(function(f){
+      html += '<div class="folder-row" data-open-folder="' + esc(f.id) + '">';
+      html += '<span class="f-name"><span class="f-icon">📁</span>' + esc(f.name) + '</span>';
+      html += '<span class="f-count">' + f.notes.length + ' <span class="f-chev">›</span></span>';
+      html += '</div>';
+    });
+
+    if (!state.folders.length) {
+      html += '<div class="empty">まだフォルダがありません。<br>右上の「＋」から作成してください。</div>';
+    }
+    html += '</div></div>';
+    root.innerHTML = html;
+
+    document.querySelectorAll('[data-open-folder]').forEach(function(el){
+      el.onclick = function(){
+        state.activeFolder = el.getAttribute('data-open-folder');
+        state.view = 'notes';
+        render();
+      };
+    });
+    var openAll = document.querySelector('[data-open-all]');
+    if (openAll) openAll.onclick = function(){ state.activeFolder = 'all'; state.view = 'notes'; render(); };
+    document.getElementById('btn-add-folder').onclick = openAddFolder;
+    document.getElementById('btn-sync').onclick = openSyncSettings;
+  }
+
+  function renderNotes(){
+    var isAll = state.activeFolder === 'all';
+    var folder = isAll ? null : getFolder(state.activeFolder);
+    var items = isAll ? allNotesFlat() : (folder ? folder.notes.map(function(n){ return { note: n, folder: folder }; }) : []);
+    items.sort(function(a,b){ return b.note.updatedAt - a.note.updatedAt; });
+
+    var html = '<div class="screen">';
+    html += '<header><div class="side"><button class="link-btn" id="btn-back-folders">‹ フォルダ</button></div><h1>' + (isAll ? 'すべてのメモ' : esc(folder ? folder.name : '')) + '</h1><div class="side right">';
+    if (!isAll) html += '<button class="link-btn" id="btn-folder-settings">…</button>';
+    html += '</div></header>';
+    html += '<div class="search-wrap"><input id="in-search" placeholder="検索"></div>';
+    html += '<div class="list-scroll" id="notes-list">';
+    html += renderNoteRows(items);
+    html += '</div>';
+    if (!isAll) html += '<button class="fab" id="btn-new-note">＋</button>';
+    html += '</div>';
+    root.innerHTML = html;
+
+    document.getElementById('btn-back-folders').onclick = function(){ state.view = 'folders'; render(); };
+    var settingsBtn = document.getElementById('btn-folder-settings');
+    if (settingsBtn) settingsBtn.onclick = openFolderSettings;
+    var newBtn = document.getElementById('btn-new-note');
+    if (newBtn) newBtn.onclick = function(){ createNoteIn(state.activeFolder); };
+    document.getElementById('in-search').oninput = function(e){
+      var q = e.target.value.trim();
+      var filtered = q ? items.filter(function(it){
+        return (it.note.title + ' ' + it.note.body).toLowerCase().indexOf(q.toLowerCase()) !== -1;
+      }) : items;
+      document.getElementById('notes-list').innerHTML = renderNoteRows(filtered);
+      bindNoteRows();
+    };
+    bindNoteRows();
+  }
+
+  function renderNoteRows(items){
+    if (!items.length) return '<div class="empty">メモがありません。</div>';
+    var html = '';
+    items.forEach(function(it){
+      var n = it.note;
+      var lines = (n.body||'').split('\n');
+      var title = (n.title || lines[0] || '新規メモ').trim() || '新規メモ';
+      var preview = '';
+      for (var i=0;i<lines.length;i++){
+        var l = lines[i].trim();
+        if (i===0 && l===title) continue;
+        if (l) { preview = l; break; }
+      }
+      html += '<div class="note-row" data-open-note="' + esc(n.id) + '" data-open-note-folder="' + esc(it.folder.id) + '">';
+      html += '<div class="n-title">' + esc(title) + '</div>';
+      html += '<div class="n-meta"><span>' + fmtDate(n.updatedAt) + '</span><span class="n-preview">' + esc(preview) + '</span></div>';
+      html += '</div>';
+    });
+    return html;
+  }
+
+  function bindNoteRows(){
+    document.querySelectorAll('[data-open-note]').forEach(function(el){
+      el.onclick = function(){
+        var noteId = el.getAttribute('data-open-note');
+        var folderId = el.getAttribute('data-open-note-folder');
+        state.activeFolder = folderId === state.activeFolder || state.activeFolder !== 'all' ? state.activeFolder : state.activeFolder;
+        if (state.activeFolder === 'all') { state.editorFolder = folderId; } else { state.editorFolder = state.activeFolder; }
+        state.activeNote = noteId;
+        state.view = 'editor';
+        render();
+      };
+    });
+  }
+
+  function createNoteIn(folderId){
+    var f = getFolder(folderId === 'all' ? (state.folders[0] ? state.folders[0].id : null) : folderId);
+    if (!f) { openAddFolder(function(newF){ addNoteAndOpen(newF); }); return; }
+    addNoteAndOpen(f);
+  }
+  function addNoteAndOpen(f){
+    var n = { id: uid(), title: '', body: '', updatedAt: Date.now() };
+    f.notes.push(n);
+    state.editorFolder = f.id;
+    state.activeNote = n.id;
+    state.view = 'editor';
+    persistLocal();
+    render();
+  }
+
+  function renderEditor(){
+    var folder = getFolder(state.editorFolder || state.activeFolder);
+    var note = folder ? findNote(folder.id, state.activeNote) : null;
+    var html = '<div class="screen">';
+    html += '<header><div class="side"><button class="link-btn" id="btn-back-notes">‹ ' + esc(folder ? folder.name : 'メモ') + '</button></div><div style="flex:1"></div><div class="side right"></div></header>';
+    html += '<div class="editor-wrap"><textarea id="editor-textarea" placeholder="メモを入力...">' + esc(note ? note.body : '') + '</textarea></div>';
+    html += '<div class="editor-footer"><span id="editor-status"></span><button id="btn-del-note">🗑</button></div>';
+    html += '</div>';
+    root.innerHTML = html;
+
+    document.getElementById('btn-back-notes').onclick = function(){ flushEditor(true); state.view = 'notes'; render(); };
+    document.getElementById('btn-del-note').onclick = function(){
+      confirmDialog('このメモを削除します。よろしいですか？', function(){
+        if (folder && note) folder.notes = folder.notes.filter(function(x){ return x.id !== note.id; });
+        state.view = 'notes';
+        persist();
+      });
+    };
+
+    editorTextareaEl = document.getElementById('editor-textarea');
+    editingNoteRef = note;
+    editorTextareaEl.focus();
+    editorTextareaEl.oninput = function(){
+      scheduleSave();
+    };
+  }
+
+  function scheduleSave(){
+    var statusEl = document.getElementById('editor-status');
+    if (statusEl) statusEl.textContent = '編集中...';
+    if (saveTimer) clearTimeout(saveTimer);
+    saveTimer = setTimeout(function(){ flushEditor(false); }, 1500);
+  }
+
+  function flushEditor(immediateRenderSkip){
+    if (saveTimer) { clearTimeout(saveTimer); saveTimer = null; }
+    if (!editorTextareaEl || !editingNoteRef) return;
+    var body = editorTextareaEl.value;
+    var firstLine = (body.split('\n')[0] || '').trim();
+    editingNoteRef.body = body;
+    editingNoteRef.title = firstLine;
+    editingNoteRef.updatedAt = Date.now();
+    persist(true);
+  }
+
+  function bindStatic(){}
+
+  function overlay(innerHtml){
+    var ov = document.createElement('div');
+    ov.className = 'overlay';
+    ov.innerHTML = '<div class="sheet">' + innerHtml + '</div>';
+    ov.onclick = function(e){ if (e.target === ov) document.body.removeChild(ov); };
+    document.body.appendChild(ov);
+    return ov;
+  }
+  function confirmDialog(message, onYes){
+    var ov = overlay(
+      '<h2>確認</h2>' +
+      '<div style="font-size:14px;line-height:1.7;margin-bottom:16px;">' + esc(message) + '</div>' +
+      '<div class="sheet-actions"><button class="btn" id="no">キャンセル</button><button class="btn danger" id="yes">削除する</button></div>'
+    );
+    ov.querySelector('#no').onclick = function(){ document.body.removeChild(ov); };
+    ov.querySelector('#yes').onclick = function(){ document.body.removeChild(ov); onYes(); };
+  }
+
+  function notify(message){
+    var ov = overlay(
+      '<div style="font-size:14px;line-height:1.7;margin-bottom:16px;white-space:pre-wrap;">' + esc(message) + '</div>' +
+      '<div class="sheet-actions"><button class="btn primary" id="ok">OK</button></div>'
+    );
+    ov.querySelector('#ok').onclick = function(){ document.body.removeChild(ov); };
+  }
+
+  function openAddFolder(afterCreate){
+    var ov = overlay(
+      '<h2>新しいフォルダ</h2>' +
+      '<input id="in-folder-name" placeholder="フォルダ名">' +
+      '<div class="sheet-actions"><button class="btn" id="cancel">キャンセル</button><button class="btn primary" id="save">作成</button></div>'
+    );
+    ov.querySelector('#cancel').onclick = function(){ document.body.removeChild(ov); };
+    ov.querySelector('#save').onclick = function(){
+      var name = ov.querySelector('#in-folder-name').value.trim();
+      if (!name) return;
+      var f = { id: uid('f'), name: name, notes: [] };
+      state.folders.push(f);
+      document.body.removeChild(ov);
+      if (typeof afterCreate === 'function') { afterCreate(f); }
+      else { persist(); }
+    };
+  }
+
+  function openFolderSettings(){
+    var folder = getFolder(state.activeFolder);
+    if (!folder) return;
+    var ov = overlay(
+      '<h2>フォルダ設定</h2>' +
+      '<input id="in-folder-name" value="' + esc(folder.name) + '">' +
+      '<div class="sheet-actions"><button class="btn" id="cancel">キャンセル</button><button class="btn primary" id="save">名前を変更</button></div>' +
+      '<div style="margin-top:10px;"><button class="btn danger" id="del-folder" style="width:100%;">このフォルダを削除</button></div>'
+    );
+    ov.querySelector('#cancel').onclick = function(){ document.body.removeChild(ov); };
+    ov.querySelector('#save').onclick = function(){
+      var name = ov.querySelector('#in-folder-name').value.trim();
+      if (!name) return;
+      folder.name = name;
+      document.body.removeChild(ov);
+      persist();
+    };
+    ov.querySelector('#del-folder').onclick = function(){
+      document.body.removeChild(ov);
+      confirmDialog('フォルダ「' + folder.name + '」を削除します。中のメモ(' + folder.notes.length + '件)もすべて削除されます。', function(){
+        state.folders = state.folders.filter(function(f){ return f.id !== folder.id; });
+        state.view = 'folders';
+        persist();
+      });
+    };
+  }
+
+  var LS_STATE_KEY = 'memo-app-state';
+  var LS_CFG_KEY = 'memo-app-github-config';
+  var gh = { owner:'', repo:'', path:'memo-data.json', branch:'main', token:'', sha:null, configured:false };
+  var syncStatus = '未設定';
+
+  function loadLocalConfig(){
+    try {
+      var raw = localStorage.getItem(LS_CFG_KEY);
+      if (raw) {
+        var c = JSON.parse(raw);
+        gh.owner = c.owner||''; gh.repo = c.repo||''; gh.path = c.path||'memo-data.json';
+        gh.branch = c.branch||'main'; gh.token = c.token||'';
+        gh.configured = !!(gh.owner && gh.repo && gh.token);
+      }
+    } catch(e){}
+  }
+  function saveLocalConfig(){
+    try { localStorage.setItem(LS_CFG_KEY, JSON.stringify({owner:gh.owner, repo:gh.repo, path:gh.path, branch:gh.branch, token:gh.token})); } catch(e){}
+  }
+  function persistLocal(){
+    try { localStorage.setItem(LS_STATE_KEY, JSON.stringify(state)); } catch(e){}
+  }
+  function loadLocalState(){
+    try { var raw = localStorage.getItem(LS_STATE_KEY); if (raw) return JSON.parse(raw); } catch(e){}
+    return null;
+  }
+
+  function b64EncodeUnicode(str){
+    return btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, function(match, p1){
+      return String.fromCharCode('0x' + p1);
+    }));
+  }
+  function b64DecodeUnicode(str){
+    return decodeURIComponent(atob(str.replace(/\n/g,'')).split('').map(function(c){
+      return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+    }).join(''));
+  }
+  function githubUrl(){
+    return 'https://api.github.com/repos/' + encodeURIComponent(gh.owner) + '/' + encodeURIComponent(gh.repo) + '/contents/' + gh.path.split('/').map(encodeURIComponent).join('/');
+  }
+  function githubFetch(){
+    if (!gh.configured) return Promise.resolve(null);
+    return fetch(githubUrl() + '?ref=' + encodeURIComponent(gh.branch), {
+      headers: { 'Authorization': 'token ' + gh.token, 'Accept': 'application/vnd.github+json' }
+    }).then(function(res){
+      if (res.status === 404) { gh.sha = null; return null; }
+      if (!res.ok) { throw new Error('GitHub取得エラー: ' + res.status); }
+      return res.json();
+    }).then(function(json){
+      if (!json) return null;
+      gh.sha = json.sha;
+      return JSON.parse(b64DecodeUnicode(json.content));
+    });
+  }
+  function githubPush(){
+    if (!gh.configured) return Promise.resolve(false);
+    var body = { message: 'メモ 更新 ' + new Date().toISOString(), content: b64EncodeUnicode(JSON.stringify(state)), branch: gh.branch };
+    if (gh.sha) body.sha = gh.sha;
+    return fetch(githubUrl(), {
+      method: 'PUT',
+      headers: { 'Authorization': 'token ' + gh.token, 'Accept': 'application/vnd.github+json', 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    }).then(function(res){
+      if (!res.ok) { return res.json().then(function(j){ throw new Error('GitHub保存エラー: ' + (j.message||res.status)); }); }
+      return res.json();
+    }).then(function(json){ gh.sha = json.content.sha; return true; });
+  }
+
+  function openSyncSettings(){
+    var ov = overlay(
+      '<h2>GitHub同期の設定</h2>' +
+      '<div style="font-size:12px;color:var(--text-sub);line-height:1.6;margin-bottom:14px;">GitHubリポジトリに1つのJSONファイルを作り、そこにメモを保存・読込します。他の端末でも同じ設定をすれば同じ内容が見えます。トークンは「Contents: Read and write」権限の Personal Access Token を使ってください。トークンはこの端末のブラウザにのみ保存されます。</div>' +
+      '<input id="in-gh-owner" value="' + esc(gh.owner) + '" placeholder="GitHubユーザー名">' +
+      '<input id="in-gh-repo" value="' + esc(gh.repo) + '" placeholder="リポジトリ名">' +
+      '<input id="in-gh-path" value="' + esc(gh.path) + '" placeholder="ファイルパス (memo-data.json)">' +
+      '<input id="in-gh-branch" value="' + esc(gh.branch) + '" placeholder="ブランチ (main)">' +
+      '<input id="in-gh-token" type="password" value="' + esc(gh.token) + '" placeholder="Personal Access Token">' +
+      '<div class="sheet-actions"><button class="btn" id="cancel">キャンセル</button><button class="btn primary" id="save">保存して同期</button></div>'
+    );
+    ov.querySelector('#cancel').onclick = function(){ document.body.removeChild(ov); };
+    ov.querySelector('#save').onclick = function(){
+      gh.owner = ov.querySelector('#in-gh-owner').value.trim();
+      gh.repo = ov.querySelector('#in-gh-repo').value.trim();
+      gh.path = ov.querySelector('#in-gh-path').value.trim() || 'memo-data.json';
+      gh.branch = ov.querySelector('#in-gh-branch').value.trim() || 'main';
+      gh.token = ov.querySelector('#in-gh-token').value.trim();
+      gh.configured = !!(gh.owner && gh.repo && gh.token);
+      saveLocalConfig();
+      document.body.removeChild(ov);
+      if (!gh.configured) { syncStatus = '未設定'; render(); return; }
+      syncStatus = '同期中...';
+      render();
+      githubFetch().then(function(remote){
+        if (remote) { state = remote; persistLocal(); }
+        syncStatus = 'OK';
+        render();
+      }).catch(function(err){
+        syncStatus = 'エラー';
+        render();
+        notify('GitHubとの通信に失敗しました。\n' + err.message);
+      });
+    };
+  }
+
+  function persist(skipRender){
+    if (!skipRender) render();
+    persistLocal();
+    if (!gh.configured) { syncStatus = '未設定'; return; }
+    syncStatus = '保存中...';
+    githubPush().then(function(){ syncStatus = 'OK'; render(); }).catch(function(err){
+      syncStatus = 'エラー';
+      render();
+      notify('GitHub保存に失敗しました（この端末には保存済み）\n' + err.message);
+    });
+  }
+
+  function init(){
+    loadLocalConfig();
+    var local = loadLocalState();
+    if (local) state = local;
+    render();
+    if (gh.configured) {
+      syncStatus = '同期中...';
+      render();
+      githubFetch().then(function(remote){
+        if (remote) { state = remote; persistLocal(); }
+        syncStatus = 'OK';
+        render();
+      }).catch(function(){ syncStatus = 'エラー'; render(); });
+    }
+  }
+
+  init();
+})();
+</script>
+
+</body>
+</html>
